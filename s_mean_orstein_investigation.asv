@@ -1,0 +1,41 @@
+clear; close all; clc;
+
+N = 5;
+M = 20;
+T = 1000;
+
+v_theta = linspace(0.2,0.2,1);
+v_sigma = linspace(0,1,M);
+
+% Now make a matrix with all the parameter values in it
+m_params = zeros(M,2);
+
+k = 1;
+for i = 1:1
+    for j = 1:M
+        m_params(k,:) = [v_theta(i),v_sigma(j)];
+        k = k + 1;
+    end
+end
+   
+c_len_params = length(m_params);
+
+% Now run the simulations returning the mean and variance
+m_results = zeros(c_len_params,2);
+
+for i = 1:c_len_params
+    c_zbar = zeros(N,1);
+    c_zvar = zeros(N,1);
+    for j = 1:N
+        [c_zb,c_zv] = f_moments_ornstein_v(T,m_params(i,1),m_params(i,2));
+        c_zbar = c_zbar + c_zb;
+        c_zvar = c_zvar + c_zv;
+    end
+    c_zbar = c_zbar/N;
+    c_zbar = c_zvar/N;
+    m_results(i,:) = [c_zbar,c_zvar];
+end
+
+plot(m_results(:,1))
+
+

@@ -1,0 +1,11 @@
+clear; close all; clc;
+
+T = 100;
+
+e = randn(T,1);
+x = zeros(T,1);
+
+% Now form the AR(1) series
+for t = 1:T-1
+   x(t+1) = x(t) + e(
+end
