@@ -137,7 +137,8 @@ function [] = f_graph_plotter_void(handles,hObject)
     for t = 1:T-1
        x(t+1) = handles.c + handles.rho*x(t) + handles.sigma*e(t+1);
     end
-    y = x.^2;
+    
+    y = exp(x);
     
     % Renormalise such that the mean of the process is 1
 %     z = mean(y);
@@ -151,7 +152,7 @@ function [] = f_graph_plotter_void(handles,hObject)
     ylim([0 10])
     
     N = 10000;
-    z = abs(fft(y,N));
+    z = abs(fft(y-mean(y),N));
     axes(handles.axes2)
     z = z.^2;
     z = fftshift(z);

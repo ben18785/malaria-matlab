@@ -1,6 +1,6 @@
-function v_Z = f_series_ornstein_v(T,N,theta,sigma)
+function v_Z = f_series_ornstein_v(T,N,chi,eta)
 % A function which returns the mean and variance of an exponential orstein
-% process with parameters theta and sigma, run for T periods
+% process with parameters chi and eta, run for T periods
 
     N = 5000; dt = T/N;
     P = zeros(1,N);
@@ -10,8 +10,8 @@ function v_Z = f_series_ornstein_v(T,N,theta,sigma)
     
     for t = 1:N-1
         dW = sqrt(dt)*randn();
-        X(t+1) = X(t) + theta*(mu - X(t))*dt + sigma*dW;
-        P(t+1) = P(t) + (theta*(mu - log(P(t))) + 0.5*(sigma^2))*P(t)*dt + sigma*P(t)*dW;
+        X(t+1) = X(t) + chi*(mu - X(t))*dt + eta*dW;
+        P(t+1) = P(t) + (chi*(mu - log(P(t))) + 0.5*(eta^2))*P(t)*dt + eta*P(t)*dW;
     end
 
-    v_Z = exp(X);
+    v_Z = exp(X)/exp(mu + eta^2/(4*chi));

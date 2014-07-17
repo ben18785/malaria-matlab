@@ -58,8 +58,8 @@ handles.output = hObject;
 handles.c_T = 100;
 handles.c_chi = 0.2;
 handles.c_eta = 0.5;
-handles.c_sigma = 0.5;
-handles.c_P0 = 1;
+handles.c_sigma = 0.05;
+handles.c_P0 = 225;
 
 
 % Update handles structure
@@ -199,9 +199,12 @@ function [] = f_sim_runner_void(handles,hObject)
 function [] = f_graph_plotter_void(handles,hObject)
     
     c_N = 5000;
-
+    c_theta_mean = 0.0001;
+    c_U = 1500;
+    c_area = c_U^2;
+    
     % First generate the path of theta - for example the weather
-    v_theta = f_series_ornstein_v(handles.c_T,c_N,handles.c_chi,handles.c_eta);
+    v_theta = c_area*c_theta_mean*f_series_ornstein_v(handles.c_T,c_N,handles.c_chi,handles.c_eta);
     c_dt = handles.c_T/c_N;
     v_t = 0:c_dt:handles.c_T-c_dt;
 

@@ -22,7 +22,7 @@ function varargout = gui_seasonality_continuous(varargin)
 
 % Edit the above text to modify the response to help gui_seasonality_continuous
 
-% Last Modified by GUIDE v2.5 15-Jul-2014 11:55:34
+% Last Modified by GUIDE v2.5 16-Jul-2014 15:22:25
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -55,12 +55,13 @@ function gui_seasonality_continuous_OpeningFcn(hObject, eventdata, handles, vara
 % Choose default command line output for gui_seasonality_continuous
 handles.output = hObject;
 
-handles.theta = 0;
-handles.sigma = 0;
-handles.T = 1000;
+handles.chi = 0;
+handles.eta = 0;
+handles.T = 10;
 
 handles.ybar = 0;
 handles.yvar = 0;
+handles.c_beta = 0;
 
 % Update handles structure
 guidata(hObject, handles);
@@ -82,7 +83,7 @@ varargout{1} = handles.output;
 
 % Set rho
 function slider2_Callback(hObject, eventdata, handles)
-handles.theta = get(hObject,'Value');
+handles.chi = get(hObject,'Value');
 
 % Update handles structure
 guidata(hObject, handles);
@@ -101,9 +102,9 @@ if isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColo
 end
 
 
-% Set sigma
+% Set eta
 function slider3_Callback(hObject, eventdata, handles)
-handles.sigma = get(hObject,'Value');
+handles.eta = get(hObject,'Value');
 
 % Update handles structure
 guidata(hObject, handles);
@@ -125,46 +126,52 @@ end
 
 function [] = f_graph_plotter_void(handles,hObject)
 
-    T = handles.T; N = 5000; dt = T/N;
+    T = handles.T; N = 10*handles.T; dt = T/(1000*N);
     P = zeros(1,N);
     P(1) = 1;
     X = zeros(1,N);
     mu = 0;
+    v_interval = [0:dt:T];
+    c_lenint = length(v_interval);
     
-    for t = 1:N-1
+    
+    for t = 1:c_lenint-1
         dW = sqrt(dt)*randn();
-        X(t+1) = X(t) + handles.theta*(mu - X(t))*dt + handles.sigma*dW;
-        P(t+1) = P(t) + (handles.theta*(mu - log(P(t))) + 0.5*(handles.sigma^2))*P(t)*dt + handles.sigma*P(t)*dW;
+       
+        X(t+1) = X(t) + handles.chi*(mu - X(t))*dt + handles.eta*dW;
+        P(t+1) = P(t) + (handles.chi*(mu - log(P(t))) + 0.5*(handles.eta^2))*P(t)*dt + handles.eta*P(t)*dW;
     end
     
     Z = exp(X);
     handles.ybar = mean(Z);
     
+    Z = Z/exp(mu + handles.eta^2/(4*handles.chi));
     
-    c_renorm = 1/handles.ybar;
-    Z = c_renorm*Z;
+
     handles.ybar = mean(Z);
     handles.yvar = std(Z)^2;
     
     axes(handles.axes1)
-    plot([0:dt:T-dt],Z)
-%     hold on
-%     plot([0:dt:T-dt],P,'r')
-%     hold off
+    plot([0:dt:T],Z)
+    ylim([-1 10])
     
     xlabel('Time')
     ylabel('Magnitude')
-%     ylim([0 100])
+
     
-    N = 10000;
-    z = abs(fft(Z,N));
-    axes(handles.axes2)
-    z = z.^2;
-    z = fftshift(z);
-    f = [-N/2:(N/2)-1]/N;
-    plot(log10(f(N/2:end)),log10(z(N/2:end)))
+axes(handles.axes2)
+
+%     v_parzen = parzenwin(length(X));
+    [pxx,f] = periodogram(Z,'onesided');
+    
+    plot(log10(f),log10(pxx));
+    
     xlabel('Log(Frequency)')
     ylabel('log(Magnitude)')
+    logf = log10(f(2:end));
+    logpxx = log(pxx(2:end));
+    v_P = polyfit(logf,logpxx,1);
+    handles.c_beta = v_P(1);
     
     
     % Update handles structure
@@ -174,14 +181,37 @@ function [] = f_graph_plotter_void(handles,hObject)
     
 function [] = f_parameter_update_void(handles,hObject)
     handles = guidata(hObject);
-    set(handles.slider2,'Value',handles.theta)
-    set(handles.slider3,'Value',handles.sigma)
+    set(handles.slider2,'Value',handles.chi)
+    set(handles.slider3,'Value',handles.eta)
     set(handles.slider4,'Value',handles.T)
     set(handles.text5,'String',num2str(handles.ybar))
-    set(handles.text23,'String',num2str(handles.theta))
-    set(handles.text24,'String',num2str(handles.sigma))
+    set(handles.text23,'String',num2str(handles.chi))
+    set(handles.text24,'String',num2str(handles.eta))
     set(handles.text26,'String',num2str(handles.T))
     set(handles.text28,'String',num2str(handles.yvar))
+    set(handles.text30,'String',num2str(handles.c_beta))
+    
+    if abs(handles.c_beta) < 0.5
+        cell_colour = 'White';
+        set(handles.text31,'Visible','on');
+        set(handles.text31,'String',cell_colour);
+        set(handles.text32,'Visible','off');
+        set(handles.text33,'Visible','off');
+    elseif abs(handles.c_beta) < 1.5
+        cell_colour = 'Red';
+        set(handles.text32,'Visible','on');
+        set(handles.text32,'String',cell_colour);
+        set(handles.text31,'Visible','off');
+        set(handles.text33,'Visible','off');
+    else
+        cell_colour = 'Brown';
+        set(handles.text33,'Visible','on');
+        set(handles.text33,'String',cell_colour);
+        set(handles.text31,'Visible','off');
+        set(handles.text32,'Visible','off');
+    end
+    
+    
    
 function [] = f_sim_runner_void(handles,hObject)
     f_graph_plotter_void(handles,hObject)
@@ -203,6 +233,28 @@ f_sim_runner_void(handles,hObject)
 % --- Executes during object creation, after setting all properties.
 function slider4_CreateFcn(hObject, eventdata, handles)
 % hObject    handle to slider4 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: slider controls usually have a light gray background.
+if isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor',[.9 .9 .9]);
+end
+
+
+% --- Executes on slider movement.
+function slider5_Callback(hObject, eventdata, handles)
+% hObject    handle to slider5 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'Value') returns position of slider
+%        get(hObject,'Min') and get(hObject,'Max') to determine range of slider
+
+
+% --- Executes during object creation, after setting all properties.
+function slider5_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to slider5 (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
 
